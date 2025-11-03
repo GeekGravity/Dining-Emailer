@@ -69,6 +69,6 @@ def send_menu_email(date: str, html_output: str, periods: dict[str, dine_api.Per
     except ValueError as exc:
         raise RuntimeError(f"Invalid email settings: {exc}") from exc
 
-    subject = f"SFU Dining - {date}"
+    subject = f"Dining Menu - {date}"
     plain_text = build_plain_text(subject, periods)
     emailer.send_email(settings, subject, html_output, plain_text)

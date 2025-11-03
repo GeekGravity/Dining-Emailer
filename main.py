@@ -24,6 +24,7 @@ def main() -> int:
         return 1
 
     html_output = render_html(date, periods)
+    print(html_output)
 
     try:
         send_menu_email(date, html_output, periods)

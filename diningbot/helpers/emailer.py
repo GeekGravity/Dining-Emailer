@@ -52,7 +52,7 @@ def send_email(settings: EmailSettings, subject: str, html_body: str, text_body:
     """Send an email with HTML + plain-text parts."""
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
-    message["From"] = settings.sender
+    message["From"] = f"SFU Dining Menu <{settings.sender}>"
     message["To"] = ", ".join(settings.recipients)
 
     message.attach(MIMEText(text_body, "plain", "utf-8"))
