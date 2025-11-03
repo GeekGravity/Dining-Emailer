@@ -51,6 +51,7 @@ python main.py --json
 - Uses today’s date automatically.
 - `platform=0` is set automatically.
 - An email is sent on each run when SMTP settings are configured (see below).
+- Period IDs are discovered dynamically each day (falls back to known IDs if the lookup fails).
 
 ### Email configuration
 
