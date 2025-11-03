@@ -31,31 +31,20 @@ DiningBot automatically pulls SFU Dining Commons menus from the official Dine On
    pip install -r requirements.txt
    ```
 5. Create a virtual environment file and populate it with the following variables:
-   ```powershell
-   DININGBOT_SMTP_HOST=
-   DININGBOT_SMTP_PORT=
-   DININGBOT_SMTP_USE_TLS=
-   DININGBOT_SMTP_USER=
-   DININGBOT_SMTP_PASSWORD=
-   DININGBOT_EMAIL_SENDER=
-   DININGBOT_EMAIL_RECIPIENTS=
-   ```
 
-## Configure Email Delivery
+   DiningBot loads everything it needs from the `.env` file.
 
-DiningBot loads everything it needs from environment variables (the `.env` file is read automatically at startup).
+   | Variable                     | Required | Description                                             |
+   | ---------------------------- | -------- | ------------------------------------------------------- |
+   | `DININGBOT_SMTP_HOST`        | yes      | SMTP server hostname (for example `smtp.gmail.com`).    |
+   | `DININGBOT_SMTP_PORT`        | no       | Port number, defaults to `587`.                         |
+   | `DININGBOT_EMAIL_SENDER`     | yes      | From address shown to recipients.                       |
+   | `DININGBOT_EMAIL_RECIPIENTS` | yes      | Comma-separated list of inboxes to receive the menu.    |
+   | `DININGBOT_SMTP_USER`        | no       | Username for authenticated SMTP providers.              |
+   | `DININGBOT_SMTP_PASSWORD`    | no       | Password or app-specific token for the account above.   |
+   | `DININGBOT_SMTP_USE_TLS`     | no       | Set to `false` to disable STARTTLS (default is `true`). |
 
-| Variable                     | Required | Description                                             |
-| ---------------------------- | -------- | ------------------------------------------------------- |
-| `DININGBOT_SMTP_HOST`        | yes      | SMTP server hostname (for example `smtp.gmail.com`).    |
-| `DININGBOT_SMTP_PORT`        | no       | Port number, defaults to `587`.                         |
-| `DININGBOT_EMAIL_SENDER`     | yes      | From address shown to recipients.                       |
-| `DININGBOT_EMAIL_RECIPIENTS` | yes      | Comma-separated list of inboxes to receive the menu.    |
-| `DININGBOT_SMTP_USER`        | no       | Username for authenticated SMTP providers.              |
-| `DININGBOT_SMTP_PASSWORD`    | no       | Password or app-specific token for the account above.   |
-| `DININGBOT_SMTP_USE_TLS`     | no       | Set to `false` to disable STARTTLS (default is `true`). |
-
-Tip: When using Gmail or Outlook, create an app password and store it in the `.env` file rather than your main password.
+   Tip: When using Gmail or Outlook, create an app password and store it in the `.env` file rather than your main password.
 
 ## Running the Program
 
