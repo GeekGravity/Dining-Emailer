@@ -1,5 +1,4 @@
 """Email helpers for sending menu summaries."""
-
 from __future__ import annotations
 
 import os
@@ -8,7 +7,15 @@ from dataclasses import dataclass, field
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Iterable, List, Optional
+import time
+from dotenv import load_dotenv
+load_dotenv()
+from supabase import create_client
 
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
+BASE_URL = os.environ["BASE_URL"]
+supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 @dataclass
 class EmailSettings:
@@ -43,24 +50,39 @@ def load_email_settings() -> EmailSettings:
         raise ValueError("DININGBOT_SMTP_HOST must be set.")
     if not settings.sender:
         raise ValueError("DININGBOT_EMAIL_SENDER must be set.")
-    if not settings.recipients:
-        raise ValueError("DININGBOT_EMAIL_RECIPIENTS must list at least one address.")
     return settings
 
 
 def send_email(settings: EmailSettings, subject: str, html_body: str, text_body: str) -> None:
     """Send an email with HTML + plain-text parts."""
-    message = MIMEMultipart("alternative")
-    message["Subject"] = subject
-    message["From"] = f"SFU Dining Menu <{settings.sender}>"
-    message["To"] = ", ".join(settings.recipients)
 
-    message.attach(MIMEText(text_body, "plain", "utf-8"))
-    message.attach(MIMEText(html_body, "html", "utf-8"))
+    # fetch active subscribers
+    res = supabase.table("subscribers").select("email, token").eq("active", True).execute()
+    rows = res.data or []
 
     with smtplib.SMTP(settings.host, settings.port, timeout=20) as client:
         if settings.use_tls:
             client.starttls()
         if settings.username and settings.password:
             client.login(settings.username, settings.password)
-        client.sendmail(settings.sender, settings.recipients, message.as_string())
+
+        for row in rows:
+            rcpt = row["email"]
+            token = row["token"]
+
+            unsubscribe_url = f"{BASE_URL}/unsubscribe?token={token}"
+
+            html_final = html_body + f"<p style='font-size:12px;margin-top:30px;'><a href='{unsubscribe_url}'>Unsubscribe</a></p>"
+
+            message = MIMEMultipart("alternative")
+            message["Subject"] = subject
+            message["From"] = f"SFU Dining Menu <{settings.sender}>"
+            message["To"] = rcpt
+
+            message.attach(MIMEText(text_body, "plain", "utf-8"))
+            message.attach(MIMEText(html_final, "html", "utf-8"))
+
+            client.sendmail(settings.sender, [rcpt], message.as_string())
+            time.sleep(1)
+
+

@@ -31,5 +31,7 @@ jobs:
           DININGBOT_SMTP_PASSWORD: ${{ secrets.DININGBOT_SMTP_PASSWORD }}
           DININGBOT_SMTP_USE_TLS: ${{ secrets.DININGBOT_SMTP_USE_TLS }}
           DININGBOT_EMAIL_SENDER: ${{ secrets.DININGBOT_EMAIL_SENDER }}
-          DININGBOT_EMAIL_RECIPIENTS: ${{ secrets.DININGBOT_EMAIL_RECIPIENTS }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          BASE_URL: "https://diningbot.onrender.com"
         run: python main.py
