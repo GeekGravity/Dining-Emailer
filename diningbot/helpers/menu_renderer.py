@@ -30,8 +30,6 @@ def render_html(date: str, period_map: Dict[str, dine_api.Period]) -> str:  # ty
 
         if period.categories:
             for category in period.categories:
-                if not category.items:
-                    continue
                 cat_name = escape(category.name or "Miscellaneous")
 
                 # station subheading row
