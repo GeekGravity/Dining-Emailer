@@ -83,6 +83,10 @@ TEPPAN_SIGNATURE = {
     norm("cantonese style chow mein noodles"),
 }
 
+SHAWARMA_SIGNATURE = {
+    norm("chicken shawarma"),
+}
+
 FRENCH_TOAST_SIGNATURE = {
     norm("french toast"),
 }

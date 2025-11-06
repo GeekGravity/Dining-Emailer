@@ -9,81 +9,159 @@ from diningbot.helpers import api as dine_api
 
 
 def render_html(date: str, period_map: Dict[str, dine_api.Period]) -> str:  # type: ignore[attr-defined]
-    """Return styled HTML for the supplied periods keyed by meal names."""
+    """Return styled HTML for the supplied periods keyed by meal names.
+
+    Visual spec (A1/E2/F2/G1):
+      - Luxury dark outer shell inspired by Atelier (no hero, no date)
+      - One main container card with gold border and dark background
+      - Header: "Today's Specials"
+      - Per-period sections in dark theme with subtle per-meal tints:
+          breakfast: #D7B47E (golden beige)
+          lunch:     #6B5E4B (coffee grey-brown)
+          dinner:    #2B2122 (deep plum-brown)
+      - Items remain bullet-style and escaped; no functional changes.
+    """
+
+    # Palette (Atelier-inspired)
+    OUTER_BG = "#141313"
+    CONTAINER_BG = "#1B1A19"
+    BORDER = "#6B5E4B"      # aged gold line
+    ACCENT = "#D7B47E"      # highlight gold for buttons/links (if needed)
+    H1_COLOR = "#E9DFC8"    # main heading
+    TEXT = "#D9D4C7"        # body text
+    MUTED = "#C8C3B6"       # slightly lighter than TEXT for subtle details
+
+    # Subtle per-meal tints (F2 mapping provided by user)
+    TINTS = {
+        "breakfast": "#D7B47E",  # golden beige
+        "lunch": "#6B5E4B",      # coffee grey-brown
+        "dinner": "#2B2122",     # deep plum-brown
+    }
 
     def table_section(period_key: str, period: dine_api.Period) -> str:  # type: ignore[attr-defined]
+        """Return a dark-themed section for one meal period."""
         header = escape(period.name or period_key.title())
+        tint = TINTS.get(period_key.lower(), BORDER)
 
-        # pick soft color per period
-        accent = {
-            "breakfast": "#ffedd5",  # peach
-            "lunch": "#e0f2fe",       # sky
-            "dinner": "#ede9fe"       # lavender
-        }.get(period_key.lower(), "#e5e7eb")
+        rows: list[str] = []
 
-        rows: list[str] = [
+        # Section header (thin divider + label)
+        rows.append(
             "<tr>"
-            f"<th style=\"background-color:{accent};color:#1f2937;padding:14px 0;"
-            "font-size:18px;text-align:center;border-top-left-radius:10px;border-top-right-radius:10px;\">"
-            f"{header}</th></tr>"
-        ]
+            f"<td style=\"padding:18px 0 8px 0;border-top:1px solid {BORDER};\">"
+            f"<h2 style=\"margin:0;font-family:Georgia,'Times New Roman',serif;"
+            f"font-size:20px;line-height:26px;color:{H1_COLOR};font-weight:600;"
+            f"letter-spacing:0.2px;text-align:left;\">"
+            # tinted pill before header text
+            f"<span style=\"display:inline-block;width:10px;height:10px;border-radius:50%;"
+            f"background:{tint};vertical-align:middle;margin-right:10px;\"></span>"
+            f"{header}"
+            f"</h2>"
+            "</td>"
+            "</tr>"
+        )
 
         if period.categories:
             for category in period.categories:
                 cat_name = escape(category.name or "Miscellaneous")
 
-                # station subheading row
+                # Category subheading
                 rows.append(
-                    "<tr><td style=\"padding:14px 0 8px 0;background-color:#ffffff;"
-                    "color:#111827;font-size:15px;font-weight:bold;text-align:center;border-top:1px solid #e5e7eb;\">"
-                    f"{cat_name}"
-                    "</td></tr>"
+                    "<tr>"
+                    f"<td style=\"padding:10px 0 4px 0;\">"
+                    f"<div style=\"display:inline-block;padding:6px 10px;border:1px solid {BORDER};"
+                    f"border-radius:14px;color:{MUTED};font-family:'Helvetica Neue',Arial,sans-serif;"
+                    f"font-size:12px;line-height:16px;\">{cat_name}</div>"
+                    "</td>"
+                    "</tr>"
                 )
 
-                # bullet item list
+                # Items list
                 items_markup = []
                 for item in category.items:
                     text = escape(item.name or "Unnamed item")
                     if item.description:
-                        text += f" <span style='color:#6b7280;font-size:12px;'>- {escape(item.description)}</span>"
+                        text += (
+                            f" <span style='color:{MUTED};font-size:12px;'>"
+                            f"- {escape(item.description)}</span>"
+                        )
                     items_markup.append(f"• {text}")
 
                 rows.append(
                     "<tr>"
-                    f"<td style=\"vertical-align:top;padding:8px 18px;background-color:#ffffff;color:#303133;"
-                    f"font-size:15px;line-height:1.4;\">{'<br>'.join(items_markup)}</td>"
+                    f"<td style=\"vertical-align:top;padding:6px 0 10px 0;"
+                    f"color:{TEXT};font-family:'Helvetica Neue',Arial,sans-serif;"
+                    f"font-size:14px;line-height:22px;\">{'<br>'.join(items_markup)}</td>"
                     "</tr>"
                 )
         else:
             rows.append(
-                "<tr><td style=\"padding:14px 16px;background-color:#ffffff;color:#374151;\">"
-                "Menu details are not available for this period.</td></tr>"
+                "<tr>"
+                f"<td style=\"padding:10px 0;color:{TEXT};font-family:'Helvetica Neue',Arial,sans-serif;"
+                "font-size:14px;line-height:22px;\">"
+                "Menu details are not available for this period."
+                "</td>"
+                "</tr>"
             )
 
-        rows.append(
-            "<tr><td style=\"height:10px;background-color:#ffffff;border-bottom-left-radius:10px;"
-            "border-bottom-right-radius:10px;\"></td></tr>"
-        )
+        return "".join(rows)
 
-        return (
-            "<table role=\"presentation\" style=\"width:100%;max-width:720px;margin:0 auto 26px auto;"
-            "border-collapse:separate;border-spacing:0;font-family:Arial,Helvetica,sans-serif;"
-            "background-color:#ffffff;border-radius:10px;border:1px solid #e5e7eb;\">"
-            f"{''.join(rows)}"
-            "</table>"
-        )
-
+    # Build all period sections (order preserved; no functional changes)
     sections = [
         table_section(key, period)
         for key, period in period_map.items()
         if period
     ]
 
+    # Header block: “Today's Specials” (no date, no hero)
     header_block = (
-        "<table role=\"presentation\" style=\"margin:0 auto 24px auto;text-align:center;\">"
-        "<tr><td style=\"font-size:22px;color:#111827;font-weight:bold;text-align:center;\">SFU Dining - "
-        f"{escape(date)}</td></tr>"
-        "<tr><td style=\"font-size:13px;color:#4b5563;padding-top:4px;text-align:center;\">Daily menu summary</td></tr>"
+        "<tr>"
+        f"<td style=\"padding:24px 20px 12px 20px;background-color:{CONTAINER_BG};\">"
+        f"<h1 style=\"margin:0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:34px;"
+        f"color:{H1_COLOR};font-weight:700;text-align:center;\">Today's Specials</h1>"
+        "</td>"
+        "</tr>"
+    )
+
+    # Optional top utility line (right-aligned)
+    view_in_browser = (
+        "<tr>"
+        f"<td style=\"padding:10px 16px;background-color:{CONTAINER_BG};border-bottom:1px solid {BORDER};\">"
+        f"<p style=\"margin:0;font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;line-height:18px;"
+        f"color:{TEXT};text-align:right;\">"
+        "</p>"
+        "</td>"
+        "</tr>"
+    )
+
+    # Inner content table (holds all sections)
+    inner_content = (
+        "<tr>"
+        f"<td style=\"padding:0 24px 24px 24px;background-color:{CONTAINER_BG};\">"
+        "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" "
+        "style=\"border-collapse:separate;border-spacing:0;\">"
+        f"{''.join(sections) if sections else ''}"
+        "</table>"
+        "</td>"
+        "</tr>"
+    )
+
+    # Outer container (gold border card on dark background)
+    container_table = (
+        "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" "
+        f"style=\"max-width:600px;width:100%;background-color:{CONTAINER_BG};border:1px solid {BORDER};\">"
+        f"{view_in_browser}"
+        f"{header_block}"
+        # (No hero image row by design)
+        f"{inner_content}"
+        # Footer divider (subtle)
+        "<tr>"
+        f"<td style=\"padding:0 24px;background-color:{CONTAINER_BG};\">"
+        "<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\">"
+        f"<tr><td style=\"border-top:1px solid {BORDER};line-height:0;font-size:0;\">&nbsp;</td></tr>"
+        "</table>"
+        "</td>"
+        "</tr>"
         "</table>"
     )
 
@@ -94,12 +172,20 @@ def render_html(date: str, period_map: Dict[str, dine_api.Period]) -> str:  # ty
         "  <meta charset=\"utf-8\">",
         "  <meta http-equiv=\"x-ua-compatible\" content=\"ie=edge\">",
         "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
+        "  <meta name=\"color-scheme\" content=\"only dark\">",
+        "  <meta name=\"supported-color-schemes\" content=\"dark\">",
         f"  <title>SFU Dining - {escape(date)}</title>",
         "</head>",
-        "<body style=\"margin:0;padding:24px;background-color:#f0f9ff;font-family:Arial,Helvetica,sans-serif;\">",
+        # Full-width dark background + centered container
+        f"<body style=\"margin:0;padding:24px;background-color:{OUTER_BG};"
+        "font-family:Arial,Helvetica,sans-serif;\">",
         "  <center style=\"width:100%;\">",
-        f"    {header_block}",
-        *sections,
+        f"    {container_table}",
+        # Breathing room spacer for small screens
+        "    <table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" width=\"100%\" "
+        "style=\"max-width:600px;\">"
+        "      <tr><td style=\"line-height:1px;font-size:1px;\">&nbsp;</td></tr>"
+        "    </table>",
         "  </center>",
         "</body>",
         "</html>",

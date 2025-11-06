@@ -11,6 +11,7 @@ from diningbot.helpers.repeats import (
     LEAF_MARKET,
     GRILL_HOUSE,
     TEPPAN_SIGNATURE,
+    SHAWARMA_SIGNATURE,
     FRENCH_TOAST_SIGNATURE,
     PANCAKE_SIGNATURE,
     RICE_BOWL_SIGNATURE,
@@ -137,6 +138,8 @@ def _handle_type3_morph(cat: dine_api.Category) -> dine_api.Category:
     # HOT PLATE
     if any(sig in names[:3] for sig in TEPPAN_SIGNATURE):
         station = "Teppenyaki Station"
+    elif any(sig in names[:3] for sig in SHAWARMA_SIGNATURE):
+        station = "Shawarma Station"
     elif any(sig in names[:3] for sig in FRENCH_TOAST_SIGNATURE):
         station = "French Toast Bar"
     elif any(sig in names[:3] for sig in PANCAKE_SIGNATURE):
@@ -144,17 +147,17 @@ def _handle_type3_morph(cat: dine_api.Category) -> dine_api.Category:
 
     # FRESH BOWL
     elif any(sig in names[:3] for sig in RICE_BOWL_SIGNATURE):
-        station = "Rice Bowl"
+        station = "Rice Bowl Bar"
     elif any(sig in names[:3] for sig in MEZZE_BAR_SIGNATURE):
         station = "Mezze Bar"
 
     # CREATE
     elif any(sig in names[:3] for sig in RAMEN_BAR_SIGNATURE):
-        station = "Ramen Bar"
+        station = "Ramen Station"
     elif any(sig in names[:3] for sig in CURRY_BAR_SIGNATURE):
-        station = "Curry Bar"
-    elif any(sig in names[:3] for sig in PASTA_BAR_SIGNATURE):
-        station = "Pasta Bar"
+        station = "Curry Station"
+    elif any(sig in names for sig in PASTA_BAR_SIGNATURE):
+        station = "Pasta Station"
 
     else:
         station = cat.name  # fallback
@@ -165,6 +168,11 @@ def _handle_type3_morph(cat: dine_api.Category) -> dine_api.Category:
 def extract_specials(periods: Dict[str, dine_api.Period]) -> Dict[str, dine_api.Period]:
     """
     Apply specials filtering logic.
+
+    MODIFIED RULES:
+      - BREAKFAST: keep only Rise & Dine
+      - TYPE3: station name stays as header + classification appears as single bullet item
+      - TYPE3 should always appear at the bottom of the period
     """
     TYPE3 = {"the hot plate (teppanyaki)", "the hot plate", "fresh bowl", "create"}
     TYPE2 = {"rise and dine", "the stacks", "leaf market", "grill house"}
@@ -175,27 +183,43 @@ def extract_specials(periods: Dict[str, dine_api.Period]) -> Dict[str, dine_api.
         if not period:
             continue
 
-        new_cats: list[dine_api.Category] = []
+        type1_and_type2: list[dine_api.Category] = []
+        type3_list: list[dine_api.Category] = []
 
         for cat in period.categories:
             cname_norm = norm(cat.name)
 
-            # TYPE3 morph
             if cname_norm in TYPE3:
-                new_cat = _handle_type3_morph(cat)
-                if new_cat:
-                    new_cats.append(new_cat)
+                morph = _handle_type3_morph(cat)
+                # classification = morph.name (station classification we detected)
+                classification = morph.name
+                # make bullet item object using same class
+                item_cls = cat.items[0].__class__
+                type3_list.append(
+                    dine_api.Category(
+                        id=cat.id,
+                        name=cat.name,  # original station name
+                        items=[ item_cls(classification, None) ]
+                    )
+                )
                 continue
 
-            # TYPE2 hybrid (filter repeats)
+            # TYPE2 hybrid (remove repeats)
             if cname_norm in TYPE2:
                 new_cat = _handle_type2_hybrid(cat)
                 if new_cat:
-                    new_cats.append(new_cat)
+                    type1_and_type2.append(new_cat)
                 continue
 
-            # TYPE1 (unique) default passthrough
-            new_cats.append(_handle_type1_unique(cat))
+            # TYPE1 passthrough
+            type1_and_type2.append(_handle_type1_unique(cat))
+
+        # merge in final order: TYPE1+TYPE2 then TYPE3 at end
+        new_cats = type1_and_type2 + type3_list
+
+        # BREAKFAST filter: only Rise & Dine
+        if period_key.lower() == "breakfast":
+            new_cats = [c for c in new_cats if norm(c.name) == "rise and dine"]
 
         out[period_key] = dine_api.Period(
             id=period.id,

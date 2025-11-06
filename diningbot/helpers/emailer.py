@@ -72,7 +72,22 @@ def send_email(settings: EmailSettings, subject: str, html_body: str, text_body:
 
             unsubscribe_url = f"{BASE_URL}/unsubscribe?token={token}"
 
-            html_final = html_body + f"<p style='font-size:12px;margin-top:30px;'><a href='{unsubscribe_url}'>Unsubscribe</a></p>"
+            footer_html = f"""
+            <tr>
+            <td style="padding:10px;background:#1B1A19;border-top:1px solid #6B5E4B;text-align:center;">
+            <p style="margin:0;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:18px;color:#D9D4C7;">
+                You're receiving this because you subscribed to the SFU Dining menu newsletter.
+            </p>
+            <p style="margin:0;margin-top:6px;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:18px;">
+                <a href="{unsubscribe_url}" style="color:#D7B47E;text-decoration:underline;">
+                Unsubscribe
+                </a>
+            </p>
+            </td>
+            </tr>
+            """
+
+            html_final = html_body.replace("</table>", footer_html + "</table>", 1)
 
             message = MIMEMultipart("alternative")
             message["Subject"] = subject
