@@ -1,7 +1,4 @@
-"""API client for Dine On Campus endpoints.
-
-Focuses on the periods (menu) endpoint for a specific location.
-"""
+"""API client for Dine On Campus endpoints."""
 
 from __future__ import annotations
 
@@ -15,6 +12,8 @@ import requests
 _logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.dineoncampus.ca/v1"
+DEFAULT_LOCATION_ID = "63fd054f92d6b41e84b6c30e"
+PERIOD_KEYS = ("breakfast", "lunch", "dinner")
 
 
 class ApiError(RuntimeError):
@@ -118,18 +117,6 @@ def parse_menu(data: Dict[str, Any]) -> Menu:
     return Menu(date=date, periods=periods)
 
 
-def summarize_menu(menu: Menu) -> str:
-    lines: List[str] = []
-    lines.append(f"Date: {menu.date}")
-    for period in menu.periods:
-        lines.append(f"\n== {period.name} ==")
-        for cat in period.categories:
-            lines.append(f"  - {cat.name}")
-            for item in cat.items[:20]:
-                lines.append(f"      - {item.name}")
-    return "\n".join(lines)
-
-
 def fetch_period(location_id: str, period_id: str, *, date: Optional[str] = None, platform: int = 0, timeout: int = 20) -> Dict[str, Any]:
     """Fetch raw JSON for a single period within a location and date.
 
@@ -196,14 +183,63 @@ def parse_period(data: Dict[str, Any]) -> Period:
         categories.append(Category(id=cid, name=cname, items=items))
     return Period(id=pid, name=name, sort_order=order, categories=categories)
 
+def _normalize_period_name(name: str) -> str:
+    return "".join(ch.lower() for ch in name if ch.isalnum())
 
-def summarize_period(period: Period, *, date: Optional[str] = None) -> str:
-    lines: List[str] = []
-    if date:
-        lines.append(f"Date: {date}")
-    lines.append(f"== {period.name} ==")
-    for cat in period.categories:
-        lines.append(f"  - {cat.name}")
-        for item in cat.items[:20]:
-            lines.append(f"      - {item.name}")
-    return "\n".join(lines)
+
+def resolve_period_ids(date: str) -> Dict[str, str]:
+    """Resolve dynamic period IDs by matching names from the daily menu."""
+
+    matches: Dict[str, str] = {}
+    try:
+        menu_data = fetch_menu(DEFAULT_LOCATION_ID, date=date, platform=0)
+    except ApiError as exc:
+        _logger.error("Failed to fetch menu for %s: %s", date, exc)
+        raise RuntimeError("Unable to fetch menu data for period resolution") from exc
+
+    if isinstance(menu_data, dict):
+        # raw periods list often contains the daily ids even when categories are empty
+        raw_periods = menu_data.get("periods")
+        if isinstance(raw_periods, list):
+            for item in raw_periods:
+                if not isinstance(item, dict):
+                    continue
+                pid = item.get("id")
+                name = item.get("name")
+                if pid and name:
+                    matches[_normalize_period_name(str(name))] = str(pid)
+        # fallback to parsed menu (may only include currently active period)
+        if not matches:
+            try:
+                parsed_menu = parse_menu(menu_data)
+            except Exception as exc:  # pragma: no cover - defensive parsing path
+                _logger.error("Failed to parse menu data for %s: %s", date, exc)
+                parsed_menu = None
+            if parsed_menu:
+                for period in parsed_menu.periods:
+                    if not period.id or not period.name:
+                        continue
+                    matches[_normalize_period_name(period.name)] = period.id
+
+    resolved: Dict[str, str] = {}
+    missing: list[str] = []
+    for key in PERIOD_KEYS:
+        norm = _normalize_period_name(key)
+        pid = matches.get(norm)
+        if pid is None:
+            pid = next((pid for name_norm, pid in matches.items() if norm in name_norm), None)
+        if pid:
+            resolved[key] = pid
+        else:
+            missing.append(key)
+
+    if missing:
+        _logger.error(
+            "Menu data for %s missing period ids for: %s (matched ids: %s)",
+            date,
+            ", ".join(missing),
+            resolved or "none",
+        )
+        raise RuntimeError(f"Missing period ids: {', '.join(missing)}")
+
+    return resolved

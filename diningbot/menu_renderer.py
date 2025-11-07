@@ -5,33 +5,20 @@ from __future__ import annotations
 from html import escape
 from typing import Dict
 
-from diningbot.helpers import api as dine_api
+from diningbot import fetch_helper as dine_api
 
 
 def render_html(date: str, period_map: Dict[str, dine_api.Period]) -> str:  # type: ignore[attr-defined]
-    """Return styled HTML for the supplied periods keyed by meal names.
+    """Return styled HTML for the supplied periods keyed by meal names."""
 
-    Visual spec (A1/E2/F2/G1):
-      - Luxury dark outer shell inspired by Atelier (no hero, no date)
-      - One main container card with gold border and dark background
-      - Header: "Today's Specials"
-      - Per-period sections in dark theme with subtle per-meal tints:
-          breakfast: #D7B47E (golden beige)
-          lunch:     #6B5E4B (coffee grey-brown)
-          dinner:    #2B2122 (deep plum-brown)
-      - Items remain bullet-style and escaped; no functional changes.
-    """
-
-    # Palette (Atelier-inspired)
+    # Palette
     OUTER_BG = "#141313"
     CONTAINER_BG = "#1B1A19"
-    BORDER = "#6B5E4B"      # aged gold line
-    ACCENT = "#D7B47E"      # highlight gold for buttons/links (if needed)
-    H1_COLOR = "#E9DFC8"    # main heading
-    TEXT = "#D9D4C7"        # body text
-    MUTED = "#C8C3B6"       # slightly lighter than TEXT for subtle details
-
-    # Subtle per-meal tints (F2 mapping provided by user)
+    BORDER = "#6B5E4B" 
+    ACCENT = "#D7B47E"   
+    H1_COLOR = "#E9DFC8"   
+    TEXT = "#D9D4C7"       
+    MUTED = "#C8C3B6"       
     TINTS = {
         "breakfast": "#D7B47E",  # golden beige
         "lunch": "#6B5E4B",      # coffee grey-brown

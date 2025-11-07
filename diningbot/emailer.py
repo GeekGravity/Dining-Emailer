@@ -6,11 +6,13 @@ import smtplib
 from dataclasses import dataclass, field
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Iterable, List, Optional
+from typing import List, Optional
 import time
 from dotenv import load_dotenv
 load_dotenv()
 from supabase import create_client
+
+PERIOD_KEYS = ("breakfast", "lunch", "dinner")
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
@@ -53,7 +55,26 @@ def load_email_settings() -> EmailSettings:
     return settings
 
 
-def send_email(settings: EmailSettings, subject: str, html_body: str, text_body: str) -> None:
+def build_plain_text(subject: str, periods: dict[str, dine_api.Period]) -> str:  # type: ignore[attr-defined]
+    """Generate a plaintext companion for the email."""
+
+    lines = [subject, ""]
+    for key in PERIOD_KEYS:
+        period = periods.get(key)
+        if not period:
+            continue
+        lines.append(period.name or key.title())
+        for category in period.categories:
+            if not category.items:
+                continue
+            item_names = ", ".join(item.name for item in category.items if item.name)
+            if item_names:
+                label = category.name or "Misc"
+                lines.append(f"  {label}: {item_names}")
+        lines.append("")
+    return "\n".join(lines).strip()
+
+def send_email_helper(settings: EmailSettings, subject: str, html_body: str, text_body: str) -> None:
     """Send an email with HTML + plain-text parts."""
 
     # fetch active subscribers
@@ -100,4 +121,14 @@ def send_email(settings: EmailSettings, subject: str, html_body: str, text_body:
             client.sendmail(settings.sender, [rcpt], message.as_string())
             time.sleep(1)
 
+def send_email(date: str, html_output: str, periods: dict[str, dine_api.Period]) -> None:  # type: ignore[attr-defined]
+    """Load email settings and dispatch the menu email."""
 
+    try:
+        settings = load_email_settings()
+    except ValueError as exc:
+        raise RuntimeError(f"Invalid email settings: {exc}") from exc
+
+    subject = f"Dining Menu - {date}"
+    plain_text = build_plain_text(subject, periods)
+    send_email_helper(settings, subject, html_output, plain_text)

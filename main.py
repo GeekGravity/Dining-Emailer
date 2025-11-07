@@ -5,29 +5,34 @@ import logging
 
 from dotenv import load_dotenv
 
-from diningbot.helpers.menu_renderer import render_html
-from diningbot.menu_service import extract_specials, fetch_daily_periods, send_menu_email
+from diningbot.fetch_menu import fetch_daily_menu
+from diningbot.extraction import extract_specials
+from diningbot.menu_renderer import render_html
+from diningbot.emailer import send_email
 
 _logger = logging.getLogger(__name__)
 
 
 def main() -> int:
+
     load_dotenv()
-
     logging.basicConfig(level=logging.INFO)
-
     date = _dt.date.today().isoformat()
+
+    # Fetch and parse menu
     try:
-        periods = fetch_daily_periods(date)
+        periods = fetch_daily_menu(date)
         periods = extract_specials(periods)
     except RuntimeError as exc:
         _logger.error("Failed to fetch periods for %s: %s", date, exc)
         return 1
 
+    # Generate email content
     html_output = render_html(date, periods)
 
+    # Send the email
     try:
-        send_menu_email(date, html_output, periods)
+        send_email(date, html_output, periods)
     except RuntimeError as exc:
         _logger.error("%s", exc)
         return 1
