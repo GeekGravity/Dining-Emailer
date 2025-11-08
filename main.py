@@ -34,7 +34,7 @@ def _parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
 
 def _run_daily() -> int:
     pacific = zoneinfo.ZoneInfo("America/Los_Angeles")
-    date = _dt.date.today().isoformat()
+    date = _dt.datetime.now(pacific).date().isoformat()
 
     try:
         periods = fetch_daily_menu(date)
