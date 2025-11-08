@@ -1,16 +1,17 @@
-name: DiningBot Daily Digest
+name: Send One-Off DiningBot Email
 
 on:
   workflow_dispatch:
-  schedule:
-    # 14:00 UTC (approx. 6:00 AM Pacific Standard Time / 7:00 AM Pacific Daylight Time)
-    - cron: "0 14 * * *"
+    inputs:
+      email:
+        description: "Email to send today's menu to"
+        required: true
 
 jobs:
-  run-diningbot:
+  send-oneoff:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -23,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run DiningBot
+      - name: Run DiningBot one-off
         env:
           DININGBOT_SMTP_HOST: ${{ secrets.DININGBOT_SMTP_HOST }}
           DININGBOT_SMTP_PORT: ${{ secrets.DININGBOT_SMTP_PORT }}
@@ -34,4 +35,4 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BASE_URL: ${{ secrets.BASE_URL }}
-        run: python main.py
+        run: python main.py --one-off "${{ github.event.inputs.email }}"
