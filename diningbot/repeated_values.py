@@ -14,6 +14,10 @@ RISE_AND_DINE = {
     norm("Oatmeal"),
     norm("Congee"),
     norm("Maple Syrup"),
+    norm("Mni Apple Danish"),
+    norm("Basic Whole Wheat Muffin"),
+    norm("Cheddar Cheese Scone"),
+    norm("McFraser Breakfast Sandwich"),
 }
 
 STACKS = {
@@ -37,6 +41,10 @@ STACKS = {
     norm("Homemade Whole Wheat Bread"),
     norm('Flour Tortilla Wrap, 10"'),
     norm("Sourdough Bread, Pre-Sliced"),
+    norm("Tomato Slice"),
+    norm("BBQ Sauce"),
+    norm("Cheddar Cheese Slices, Medium"),
+    norm("Whole Wheat Bread, Slice"),
 }
 
 LEAF_MARKET = {
@@ -74,6 +82,10 @@ GRILL_HOUSE = {
     norm("Pesto Aioli"),
     norm("Signature Burger Sauce"),
     norm("Kimchi-Style Coleslaw"),
+    norm("Black Bean Veggie Burger Deluxe (RD)"),
+    norm("Mild Chunky Salsa"),
+    norm("Sour Cream"),
+    norm("Chicken Tender Strips"),
 }
 
 # ===========================================
